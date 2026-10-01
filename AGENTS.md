@@ -6,12 +6,26 @@ Sorteio de times para o futebol de quarta-feira, 19h.
 
 - Lista montada no grupo perto do horário, nomes em qualquer ordem
 - **Sorteio é aleatório mesmo.** Ninguém sabe quem é forte, e ninguém se importa
-- Formato: **sempre 6 contra 6** (12 em campo = 6 de linha + 1 goleiro cada)
+- **Todo mundo que não é convidado joga.** Ninguém fica de fora, não existe reserva
+- Tamanho do time é escolhido no app: **5x5, 6x6, 7x7 ou 8x8** (padrão 6x6)
+- Sempre 2 goleiros, um por time
 - **Time 1 é verde, time 2 é amarelo**
 - Convidados ficam numa lista separada: só entram no jogo seguinte, no lugar de
   quem saiu. O app ignora a seção de convidados
-- Quem sobrar aparece como **Reserva**, para ser a troca da rodada
 - Lista vazia de número (`1️⃣3️⃣ - `) é ignorada
+
+### O que o tamanho escolhido faz
+
+O seletor define **quantos precisam aparecer**, não um teto. Como todos jogam,
+quem manda é a quantidade de nomes:
+
+- 7x7 com 14 nomes → 7 e 7
+- 7x7 com 13 nomes → 7 e 6 (os times ficam no máximo 1 de diferença)
+- 7x7 com 12 nomes → avisa "precisa de 14, achei 12" e não sorteia
+- 6x6 com 16 nomes → 8 e 8 (todos jogam, os times só crescem)
+
+Se um dia quiserem "no 6x6, quem passar de 12 não joga", a regra muda em
+`sortear()` e a UI precisa voltar a mostrar quem ficou de fora.
 
 ## Goleiro é marcado com 🥅, não pelo nome
 
@@ -23,22 +37,20 @@ Por isso o parser só olha o emoji. Nenhum nome está escrito no código.
 - 2 marcados: ambos entram, um em cada time
 - 1 marcado: ele fica e o segundo é sorteado entre os de linha
 - 0 marcados: os 2 são sorteados
-- mais de 2: o excedente volta pra lista de linha/reserva
+- mais de 2: o excedente volta pra lista de linha e joga normalmente
 
 ## App
 
 Arquivo único, sem build, sem npm: `index.html`
 
-Abre direto no navegador. Pra mandar no grupo, é só copiar o arquivo ou
-publicar no GitHub Pages.
+Abre direto no navegador. Publicado como PWA no GitHub Pages.
 
 ## Como sorteia
 
 1. `lerLista()` limpa o texto colado e separa quem tem 🥅 dos demais
 2. Os marcados viram goleiros fixos; o que faltar é sorteado
 3. Embaralha a lista de linha (Fisher-Yates)
-4. Reparte 5 de linha pra cada time
-5. Quem sobrar vira Reserva
+4. Distribui **todos** alternando, um pra cada time
 
 Decisão: os nomes da lista **não** carregam nota nenhuma. É sorteio puro. Se um
 dia alguém quiser ordem por mérito, a mudança fica isolada em `sortear()`.
@@ -68,7 +80,7 @@ Deliberadamente **não** existe lista de palavras proibidas (`local`, `bola`,
 grupo escrevia "Rolou na Quadra 2" — o "Quadra 2" entrava como nome.
 
 Agora é o contrário: se a linha não começa com número, ela é cabeçalho por
-definição. Qualquer texto novo que o grupoinventar fica de fora sozinho.
+definição. Qualquer texto novo que o grupo inventar fica de fora sozinho.
 
 ### Detalhes que já quebraram e têm teste
 
@@ -100,14 +112,15 @@ PWA publicada no GitHub Pages:
 - **Repo:** https://github.com/Galinho44/football
 - Branch `main`, pasta raiz, Source = Deploy from a branch
 
-Ao gravar arquivo no celular, use o Chrome do Android: menu → "Adicionar à
-tela inicial". Vira ícone e abre em tela cheia, sem barra do navegador.
+No celular, use o Chrome do Android: menu → "Adicionar à tela inicial". Vira
+ícone e abre em tela cheia, sem barra do navegador.
 
 ### Arquivos da PWA
 
 - `manifest.json` — nome, ícones, cor, `display: standalone`
-- `sw.js` — service worker, cache `sortear-times-vN`. **Ao mudar arquivo do
-  app, subir a versão do cache**, senão o celular continua mostrando o antigo
+- `sw.js` — service worker, cache `sortear-times-vN`. **Ao mudar qualquer
+  arquivo do app, subir a versão N do cache**, senão o celular continua
+  mostrando o antigo
 - `icone-192.png` e `icone-512.png` — gerados por `node gerar-icones.mjs`,
   sem biblioteca externa (PNG montado na mão com zlib)
 - O CSS pede `background.jpg`; se o arquivo não existir, só cai na cor escura
@@ -117,18 +130,17 @@ Service worker só funciona em `https://` (ou `localhost`). Abrir o HTML por
 
 ## Testes
 
-Rode os três antes de publicar:
+Rode antes de publicar:
 
 ```
-node lista-real.test.mjs       # parser + sorteio (50)
-node sortear.test.mjs          # sorteio puro (16)
+node lista-real.test.mjs       # parser + regras do sorteio (53)
 node testar-pwa.mjs            # PWA servida local (32)
 node testar-pwa-online.mjs     # PWA no ar (20)
 ```
 
 ## Estado
 
-Funcionando e publicado. App abre direto no navegador e é instalável no celular.
+Funcionando, testado e publicado. App instalável no celular e funciona offline.
 
 Próximo passo combinado: gerar **APK** pelo GitHub Actions, usando o template
 Android do PWABuilder, sem instalar Android Studio na máquina.
