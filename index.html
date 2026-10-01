@@ -168,14 +168,39 @@
         margin-top: 16px;
       }
 
-      .reserva {
+      .formato {
+        display: flex;
+        align-items: center;
+        gap: 10px;
         margin-top: 14px;
-        padding: 12px 14px;
+        padding: 12px 16px;
         background: #1e293b;
         border: 2px solid #334155;
         border-radius: 12px;
+      }
+
+      .formato label {
         font-size: 15px;
+        font-weight: 600;
         color: #cbd5e1;
+      }
+
+      .formato select {
+        flex: 1;
+        padding: 10px 12px;
+        background: #0f172a;
+        color: #fff;
+        border: 2px solid #334155;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 700;
+        font-family: inherit;
+        cursor: pointer;
+      }
+
+      .formato select:focus {
+        outline: none;
+        border-color: #22c55e;
       }
     </style>
   </head>
@@ -188,37 +213,50 @@
         placeholder="Cola aqui a lista do WhatsApp"
       ></textarea>
 
+      <div class="formato">
+        <label for="tamanho">Tamanho do time</label>
+        <select id="tamanho"></select>
+      </div>
+
       <button class="btn" id="sortear">Sortear</button>
       <p class="msg esconde" id="msg"></p>
 
       <div class="esconde" id="resultado">
         <div class="times">
           <div class="time verde">
-            <div class="cab">Time 1</div>
+            <div class="cab" id="cabVerde">Time 1</div>
             <div id="verde"></div>
           </div>
           <div class="time amarelo">
-            <div class="cab">Time 2</div>
+            <div class="cab" id="cabAmarelo">Time 2</div>
             <div id="amarelo"></div>
           </div>
         </div>
-
-        <p class="reserva esconde" id="fora"></p>
 
         <button class="btn denovo" id="deNovo">Sortear de novo</button>
       </div>
     </div>
 
     <script>
-const POR_TIME = 6
-const DE_LINHA = POR_TIME - 1 // 5 de linha + 1 goleiro = 6
-const MINIMO = POR_TIME * 2 // 12 em campo
+      // tamanhos de time oferecidos (goleiro incluido)
+      const FORMATOS = [5, 6, 7, 8]
+      const FORMATO_PADRAO = 6
 
       const lista = document.getElementById('lista')
+      const seletor = document.getElementById('tamanho')
       const msg = document.getElementById('msg')
       const resultado = document.getElementById('resultado')
       const botao = document.getElementById('sortear')
       const deNovo = document.getElementById('deNovo')
+
+      // monta as opcoes do seletor a partir da lista de formatos
+      for (const n of FORMATOS) {
+        const opcao = document.createElement('option')
+        opcao.value = n
+        opcao.textContent = n + 'x' + n
+        if (n === FORMATO_PADRAO) opcao.selected = true
+        seletor.appendChild(opcao)
+      }
 
       /**
        * Le a lista que vem colada do WhatsApp.
@@ -320,14 +358,15 @@ const MINIMO = POR_TIME * 2 // 12 em campo
       }
 
       /**
-       * Monta os dois times de 6 em campo (1 goleiro + 5 de linha).
+       * Monta os dois times.
+       *
+       * Todo mundo que nao e convidado joga. Ninguem fica de fora, ninguem
+       * vira reserva: a lista de linha e distribuida alternando, entao os
+       * times ficam, no maximo, 1 jogador de diferenca.
        *
        * Quem tem 🥅 na lista entra como goleiro fixo. Pode ter 1 ou 2; o que
-       * faltar e sorteado entre os de linha. Se vier mais de 2, os extras
-       * entram como reservas (fora).
-       *
-       * Se sobrar gente para mais de 12 em campo, ela fica na lista de fora
-       * para ser a troca da proxima rodada.
+       * faltar e sorteado entre os de linha. Se vier mais de 2, o excedente
+       * volta pra lista de linha e joga normalmente.
        */
       function sortear(linha, golsFixos) {
         const embaralhados = embaralhar(linha)
@@ -341,18 +380,13 @@ const MINIMO = POR_TIME * 2 // 12 em campo
         const t1 = [gols[0]]
         const t2 = [gols[1]]
 
-        // 5 de linha por time
-        for (let i = 0; i < DE_LINHA; i++) {
-          const a = embaralhados[i * 2]
-          const b = embaralhados[i * 2 + 1]
-          // undefined = lista curta demais. Sem esse if, entra null na tela
-          if (a !== undefined) t1.push(a)
-          if (b !== undefined) t2.push(b)
+        // alterna um pra cada time: todos entram, sem sobra
+        for (let i = 0; i < embaralhados.length; i++) {
+          if (i % 2 === 0) t1.push(embaralhados[i])
+          else t2.push(embaralhados[i])
         }
 
-        const fora = embaralhados.slice(DE_LINHA * 2)
-
-        return { t1, t2, fora }
+        return { t1, t2 }
       }
 
       function mostrar(elemento, time, ehGoleiro) {
@@ -380,26 +414,37 @@ const MINIMO = POR_TIME * 2 // 12 em campo
       function jogar() {
         const { linha, gols } = lerLista(lista.value)
         const total = linha.length + gols.length
+        const porTime = Number(seletor.value)
+        const minimo = porTime * 2
 
-        if (total < MINIMO) {
-          aviso('Precisa de ' + MINIMO + ' jogadores. Achei ' + total + '.')
+        // o tamanho escolhido diz quantos precisam aparecer. se faltar, avisa
+        // quanto falta em vez de gerar time incompleto
+        if (total < minimo) {
+          aviso(
+            'Formato ' +
+              porTime +
+              'x' +
+              porTime +
+              ' precisa de ' +
+              minimo +
+              ' jogadores. Achei ' +
+              total +
+              '.'
+          )
           return
         }
 
         msg.classList.add('esconde')
-        const { t1, t2, fora } = sortear(linha, gols)
+        const { t1, t2 } = sortear(linha, gols)
+
+        // se veio mais gente que o formato, todos jogam e os times crescem.
+        // o cabecalho mostra quantos ficaram em cada lado
+        document.getElementById('cabVerde').textContent = 'Time 1 · ' + t1.length
+        document.getElementById('cabAmarelo').textContent = 'Time 2 · ' + t2.length
+
         mostrar(document.getElementById('verde'), t1, t1[0])
         mostrar(document.getElementById('amarelo'), t2, t2[0])
         resultado.classList.remove('esconde')
-
-        const bloco = document.getElementById('fora')
-        if (fora.length > 0) {
-          bloco.innerHTML =
-            '<strong>Reserva:</strong> ' + fora.join(' · ')
-          bloco.classList.remove('esconde')
-        } else {
-          bloco.classList.add('esconde')
-        }
       }
 
       botao.addEventListener('click', jogar)

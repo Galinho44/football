@@ -3,7 +3,7 @@
 // Sem isso, a PWA abre só quando tem internet. Com isso, o celular abre o app
 // no vestiário sem sinal e tudo funciona, porque nada aqui depende de rede.
 
-const CACHE = 'sortear-times-v1'
+const CACHE = 'sortear-times-v2'
 
 // arquivos que fazem o app funcionar. se um deles mudar, troque a versao acima
 const ARQUIVOS = [
