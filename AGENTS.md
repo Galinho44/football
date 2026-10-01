@@ -92,6 +92,43 @@ Pra trocar a foto: nomeie a imagem de **`background.jpg`** e jogue em
 Cuidado com a extensão: salvar como `background.jpg.jpg` faz o app não achar,
 porque o CSS pede `background.jpg` exato.
 
+## Publicação
+
+PWA publicada no GitHub Pages:
+
+- **App:** https://galinho44.github.io/football/
+- **Repo:** https://github.com/Galinho44/football
+- Branch `main`, pasta raiz, Source = Deploy from a branch
+
+Ao gravar arquivo no celular, use o Chrome do Android: menu → "Adicionar à
+tela inicial". Vira ícone e abre em tela cheia, sem barra do navegador.
+
+### Arquivos da PWA
+
+- `manifest.json` — nome, ícones, cor, `display: standalone`
+- `sw.js` — service worker, cache `sortear-times-vN`. **Ao mudar arquivo do
+  app, subir a versão do cache**, senão o celular continua mostrando o antigo
+- `icone-192.png` e `icone-512.png` — gerados por `node gerar-icones.mjs`,
+  sem biblioteca externa (PNG montado na mão com zlib)
+- O CSS pede `background.jpg`; se o arquivo não existir, só cai na cor escura
+
+Service worker só funciona em `https://` (ou `localhost`). Abrir o HTML por
+`file://` não registra, então offline não vale nesse caso.
+
+## Testes
+
+Rode os três antes de publicar:
+
+```
+node lista-real.test.mjs       # parser + sorteio (50)
+node sortear.test.mjs          # sorteio puro (16)
+node testar-pwa.mjs            # PWA servida local (32)
+node testar-pwa-online.mjs     # PWA no ar (20)
+```
+
 ## Estado
 
-Funcionando. Testes: `node lista-real.test.mjs` (50) e `node sortear.test.mjs` (16).
+Funcionando e publicado. App abre direto no navegador e é instalável no celular.
+
+Próximo passo combinado: gerar **APK** pelo GitHub Actions, usando o template
+Android do PWABuilder, sem instalar Android Studio na máquina.
