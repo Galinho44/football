@@ -1,0 +1,9 @@
+﻿Crie uma imagem de fundo vertical (4:5 ou 9:16) para um app de sorteio de times de futebol.
+
+Estilo: campo de futebol sintético moderno, visão em perspectiva baixa, gramado verde vibrante (#0f7c32) com linhas brancas suaves (área, meio de campo, marca do pênalti, círculo central). Iluminação natural lateral (golden hour suave), com um leve gradiente verde escuro no topo para dar contraste com texto branco.
+
+Usar cores sóbrias, sem torcedores, sem pessoas, sem bolas, sem logos. Fundo limpo e minimalista, com desfoque muito leve nos detalhes distantes pra não competir com o texto.
+
+Proporção ideal: 4:5 (Instagram post) ou 9:16 (mobile). Salvar como JPG com nome `background.jpg` (qualidade boa, ~85%).
+
+Não coloque elementos decorativos, nem bordas, nem texto na imagem.

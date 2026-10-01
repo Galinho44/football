@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f172a" />
+
+    <!-- PWA: permite instalar na tela inicial do celular -->
+    <link rel="manifest" href="manifest.json" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="apple-touch-icon" href="icone-192.png" />
+    <link rel="icon" href="icone-192.png" />
+
+    <title>Sortear Times</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+        background-color: #0f172a;
+        /* Se voce colocar uma imagem (background.jpg) na mesma pasta, ela
+           aparece aqui. Sem o arquivo, usa so a cor escura. */
+        background-image: url('background.jpg');
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        color: #fff;
+        min-height: 100vh;
+        padding: 16px;
+      }
+
+      .box {
+        max-width: 720px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        font-size: 26px;
+        font-weight: 800;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 180px;
+        padding: 16px;
+        background: #1e293b;
+        border: 2px solid #334155;
+        border-radius: 12px;
+        color: #fff;
+        font-family: inherit;
+        font-size: 16px;
+        line-height: 1.7;
+        resize: none;
+      }
+
+      textarea:focus {
+        outline: none;
+        border-color: #22c55e;
+      }
+
+      textarea::placeholder {
+        color: #64748b;
+      }
+
+      .btn {
+        width: 100%;
+        margin-top: 12px;
+        padding: 18px;
+        background: #22c55e;
+        color: #052e16;
+        border: none;
+        border-radius: 12px;
+        font-family: inherit;
+        font-size: 20px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .btn:active {
+        transform: scale(0.98);
+      }
+
+      .btn:disabled {
+        background: #334155;
+        color: #64748b;
+      }
+
+      .msg {
+        text-align: center;
+        margin-top: 12px;
+        font-size: 14px;
+        color: #f87171;
+      }
+
+      .esconde {
+        display: none;
+      }
+
+      .times {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 24px;
+      }
+
+      @media (max-width: 560px) {
+        .times {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .time {
+        border-radius: 14px;
+        overflow: hidden;
+      }
+
+      .verde {
+        background: #14532d;
+      }
+
+      .amarelo {
+        background: #713f12;
+      }
+
+      .cab {
+        padding: 14px;
+        font-size: 18px;
+        font-weight: 800;
+        text-align: center;
+      }
+
+      .verde .cab {
+        background: #22c55e;
+        color: #052e16;
+      }
+
+      .amarelo .cab {
+        background: #eab308;
+        color: #422006;
+      }
+
+      .jogador {
+        padding: 12px 14px;
+        font-size: 17px;
+        font-weight: 600;
+        border-top: 1px solid rgba(255, 255, 255, 0.12);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .gol {
+        margin-left: auto;
+        font-size: 20px;
+      }
+
+      .denovo {
+        background: #1e293b;
+        color: #fff;
+        border: 2px solid #334155;
+        margin-top: 16px;
+      }
+
+      .reserva {
+        margin-top: 14px;
+        padding: 12px 14px;
+        background: #1e293b;
+        border: 2px solid #334155;
+        border-radius: 12px;
+        font-size: 15px;
+        color: #cbd5e1;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <h1>⚽ Sortear Times</h1>
+
+      <textarea
+        id="lista"
+        placeholder="Cola aqui a lista do WhatsApp"
+      ></textarea>
+
+      <button class="btn" id="sortear">Sortear</button>
+      <p class="msg esconde" id="msg"></p>
+
+      <div class="esconde" id="resultado">
+        <div class="times">
+          <div class="time verde">
+            <div class="cab">Time 1</div>
+            <div id="verde"></div>
+          </div>
+          <div class="time amarelo">
+            <div class="cab">Time 2</div>
+            <div id="amarelo"></div>
+          </div>
+        </div>
+
+        <p class="reserva esconde" id="fora"></p>
+
+        <button class="btn denovo" id="deNovo">Sortear de novo</button>
+      </div>
+    </div>
+
+    <script>
+const POR_TIME = 6
+const DE_LINHA = POR_TIME - 1 // 5 de linha + 1 goleiro = 6
+const MINIMO = POR_TIME * 2 // 12 em campo
+
+      const lista = document.getElementById('lista')
+      const msg = document.getElementById('msg')
+      const resultado = document.getElementById('resultado')
+      const botao = document.getElementById('sortear')
+      const deNovo = document.getElementById('deNovo')
+
+      /**
+       * Le a lista que vem colada do WhatsApp.
+       *
+       * A lista do grupo tem 3 blocos:
+       *   Lista Aerobaba 30/09/2026      <- cabecalho, IGNORA
+       *   Local: Costa Verde             <- cabecalho, IGNORA
+       *   Bola rolando: 19h             <- cabecalho, IGNORA
+       *
+       *   1️⃣- Vieira                     <- nome, ENTRA
+       *   2️⃣- RIBA                      <- nome, ENTRA
+       *   🔟  -Tiago (O retorno)         <- nome, ENTRA
+       *   1️⃣1️⃣ - Bruno                  <- nome, ENTRA
+       *   🥅 - Galinho                   <- goleiro FIXO
+       *
+       *   Convidado (R$ 20,00):          <- comeca outra lista, IGNORA tudo
+       *   1️⃣- Icaro
+       *
+       * Nao usamos lista de palavras proibidas. A regra e mais simples e mais
+       * segura: **so conta linha que comeca com numero**. Qualquer coisa antes
+       * do primeiro numero e cabecalho, por definicao. Amanha o grupo escreve
+       * "Rolou na Quadra 2" e isso nao vira nome de jogador.
+       *
+       * Detalhes que quebram um parser mal feito:
+       * - 1️⃣ a 9️⃣ sao keycap (digito + VS16 + U+20E3), mas 🔟 (10) e um
+       *   emoji solido (U+1F51F). Sao formatos diferentes.
+       * - depois de tirar o numero sobra espaco e hifen: " -Tiago"
+       * - o 🥅 vem antes do numero, nao depois: "🥅 - Galinho"
+       *
+       * Devolve { linha: [], gols: [] }.
+       */
+      function lerLista(texto) {
+        const linha = []
+        const gols = []
+
+        // 1) corta tudo a partir da secao de convidados
+        const semConvidado = texto.split(/convidado/i)[0]
+
+        // 2) junta as linhas numeradas em uma lista so
+        const nomes = []
+        let comecou = false
+
+        for (const bruta of semConvidado.split('\n')) {
+          const l = bruta.trim()
+          if (!l) continue
+
+          const numero = extraiNumero(l)
+          const ehGol = l.includes('🥅')
+
+          // so numerada ou so goleiro entra na lista
+          if (numero === null && !ehGol) continue
+
+          // 3) a partir do primeiro numero, lista valida
+          comecou = true
+
+          // tira o numero (emoji ou digito), o hifen e o emoji de goleiro
+          // 1) tira o 🥅 do comeco (so o do comeco, ele marca o goleiro)
+          let nome = l.replace(/^\s*\u{1F945}/u, '').trimStart()
+
+          // 2) come todo o prefixo numerico: pode ter 1 ou 2 digitos em keycap,
+          //    🔟, circulado, ou numero normal. opcionalmente com separador
+          nome = nome
+            .replace(
+              /^(\s*(?:[\u0030-\u0039](?:\uFE0F\u20E3)+|[\u2460-\u2473\u3251-\u325F]|\u{1F51F}|\d{1,2})\s*[-–—.:)]?\s*)+/u,
+              ''
+            )
+            .replace(/^[\s\-–—.:)]+/, '')
+            .replace(/[*_~`]/g, '')
+            .trim()
+
+          // "1️⃣3️⃣ - " sem nome: linha vazia na lista, nao conta
+          if (nome.length < 2) continue
+
+          if (ehGol) gols.push(nome)
+          else linha.push(nome)
+        }
+
+        return { linha, gols }
+      }
+
+      // detecta numero no comeco da linha (emoji keycap, 🔟, circulado ou digito)
+      function extraiNumero(l) {
+        if (/^[\u0030-\u0039](?:\uFE0F\u20E3)+/.test(l)) return true
+        if (/^[\u2460-\u2473\u3251-\u325F]/.test(l)) return true
+        if (/^\u{1F51F}/u.test(l)) return true
+        if (/^\d{1,2}/.test(l)) return true
+        return null
+      }
+
+      function embaralhar(a) {
+        const c = [...a]
+        for (let i = c.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1))
+          const t = c[i]
+          c[i] = c[j]
+          c[j] = t
+        }
+        return c
+      }
+
+      /**
+       * Monta os dois times de 6 em campo (1 goleiro + 5 de linha).
+       *
+       * Quem tem 🥅 na lista entra como goleiro fixo. Pode ter 1 ou 2; o que
+       * faltar e sorteado entre os de linha. Se vier mais de 2, os extras
+       * entram como reservas (fora).
+       *
+       * Se sobrar gente para mais de 12 em campo, ela fica na lista de fora
+       * para ser a troca da proxima rodada.
+       */
+      function sortear(linha, golsFixos) {
+        const embaralhados = embaralhar(linha)
+
+        const gols = golsFixos.slice(0, 2)
+        // quem sobra da lista de gols fixos volta pra linha
+        for (const extra of golsFixos.slice(2)) embaralhados.push(extra)
+
+        while (gols.length < 2) gols.push(embaralhados.shift())
+
+        const t1 = [gols[0]]
+        const t2 = [gols[1]]
+
+        // 5 de linha por time
+        for (let i = 0; i < DE_LINHA; i++) {
+          const a = embaralhados[i * 2]
+          const b = embaralhados[i * 2 + 1]
+          // undefined = lista curta demais. Sem esse if, entra null na tela
+          if (a !== undefined) t1.push(a)
+          if (b !== undefined) t2.push(b)
+        }
+
+        const fora = embaralhados.slice(DE_LINHA * 2)
+
+        return { t1, t2, fora }
+      }
+
+      function mostrar(elemento, time, ehGoleiro) {
+        elemento.innerHTML = ''
+        time.forEach((nome, i) => {
+          const linha = document.createElement('div')
+          linha.className = 'jogador'
+          linha.textContent = (i + 1) + '. ' + nome
+          if (ehGoleiro === nome) {
+            const gol = document.createElement('span')
+            gol.className = 'gol'
+            gol.textContent = '🥅'
+            linha.appendChild(gol)
+          }
+          elemento.appendChild(linha)
+        })
+      }
+
+      function aviso(texto) {
+        msg.textContent = texto
+        msg.classList.remove('esconde')
+        resultado.classList.add('esconde')
+      }
+
+      function jogar() {
+        const { linha, gols } = lerLista(lista.value)
+        const total = linha.length + gols.length
+
+        if (total < MINIMO) {
+          aviso('Precisa de ' + MINIMO + ' jogadores. Achei ' + total + '.')
+          return
+        }
+
+        msg.classList.add('esconde')
+        const { t1, t2, fora } = sortear(linha, gols)
+        mostrar(document.getElementById('verde'), t1, t1[0])
+        mostrar(document.getElementById('amarelo'), t2, t2[0])
+        resultado.classList.remove('esconde')
+
+        const bloco = document.getElementById('fora')
+        if (fora.length > 0) {
+          bloco.innerHTML =
+            '<strong>Reserva:</strong> ' + fora.join(' · ')
+          bloco.classList.remove('esconde')
+        } else {
+          bloco.classList.add('esconde')
+        }
+      }
+
+      botao.addEventListener('click', jogar)
+      deNovo.addEventListener('click', jogar)
+
+      // registra o service worker pra funcionar offline e poder instalar.
+      // so roda se o navegador suportar e se a pagina vier de http(s) —
+      // abrir o arquivo direto (file://) nao permite service worker
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js').catch(() => {
+            // sem service worker o app ainda funciona, so nao fica offline
+          })
+        })
+      }
+    </script>
+  </body>
+</html>
